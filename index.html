@@ -2,11 +2,13 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Universo de Partículas 3D</title>
+
+<title>Universo de Partículas con Manos</title>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
 
 <style>
 
@@ -18,41 +20,58 @@ font-family:Arial;
 }
 
 #mensaje{
+
 position:absolute;
 top:50%;
 left:50%;
 transform:translate(-50%,-50%);
+font-size:50px;
 color:white;
-font-size:60px;
 text-shadow:0 0 30px cyan;
 pointer-events:none;
+
 }
 
-video{
-display:none;
+#debugCam{
+
+position:fixed;
+right:20px;
+bottom:20px;
+width:240px;
+border-radius:10px;
+border:2px solid cyan;
+
 }
 
 </style>
+
 </head>
 
 <body>
 
-<video id="video" playsinline></video>
+<video id="video" playsinline style="display:none"></video>
+<canvas id="debugCam"></canvas>
+
 <div id="mensaje"></div>
 
 <script>
 
-const PARTICLES=15000
+const PARTICLES = 20000
 
 let scene,camera,renderer
 let geometry,points
 let positions,targetPositions
 
-init()
+let handX=0
+let handY=0
+
+let figura=-1
+
+init3D()
 initHands()
 animate()
 
-function init(){
+function init3D(){
 
 scene=new THREE.Scene()
 
@@ -63,10 +82,11 @@ window.innerWidth/window.innerHeight,
 2000
 )
 
-camera.position.z=150
+camera.position.z=200
 
 renderer=new THREE.WebGLRenderer({antialias:true})
 renderer.setSize(window.innerWidth,window.innerHeight)
+
 document.body.appendChild(renderer.domElement)
 
 geometry=new THREE.BufferGeometry()
@@ -86,17 +106,15 @@ targetPositions[i*3+2]=positions[i*3+2]
 
 }
 
-geometry.setAttribute(
-'position',
-new THREE.BufferAttribute(positions,3)
-)
+geometry.setAttribute('position',new THREE.BufferAttribute(positions,3))
 
 const material=new THREE.PointsMaterial({
-size:1.5,
+size:1.4,
 color:0xffffff
 })
 
 points=new THREE.Points(geometry,material)
+
 scene.add(points)
 
 window.addEventListener("resize",()=>{
@@ -115,16 +133,33 @@ requestAnimationFrame(animate)
 
 for(let i=0;i<PARTICLES*3;i++){
 
-positions[i]+= (targetPositions[i]-positions[i])*0.03
+positions[i]+= (targetPositions[i]-positions[i])*0.02
 
 }
 
 geometry.attributes.position.needsUpdate=true
 
-points.rotation.y+=0.002
-points.rotation.x+=0.0007
+points.rotation.y += handX*0.05
+points.rotation.x += handY*0.05
 
 renderer.render(scene,camera)
+
+}
+
+function explosion(){
+
+for(let i=0;i<PARTICLES;i++){
+
+let power=Math.random()*300
+
+let theta=Math.random()*Math.PI*2
+let phi=Math.acos(2*Math.random()-1)
+
+targetPositions[i*3]=power*Math.sin(phi)*Math.cos(theta)
+targetPositions[i*3+1]=power*Math.sin(phi)*Math.sin(theta)
+targetPositions[i*3+2]=power*Math.cos(phi)
+
+}
 
 }
 
@@ -134,7 +169,8 @@ for(let i=0;i<PARTICLES;i++){
 
 let phi=Math.acos(2*Math.random()-1)
 let theta=2*Math.PI*Math.random()
-let r=70
+
+let r=80
 
 targetPositions[i*3]=r*Math.sin(phi)*Math.cos(theta)
 targetPositions[i*3+1]=r*Math.sin(phi)*Math.sin(theta)
@@ -149,25 +185,11 @@ function setGalaxy(){
 for(let i=0;i<PARTICLES;i++){
 
 let r=Math.random()*120
-let angle=r*0.25
+let a=r*0.3
 
-targetPositions[i*3]=Math.cos(angle)*r
+targetPositions[i*3]=Math.cos(a)*r
 targetPositions[i*3+1]=(Math.random()-0.5)*20
-targetPositions[i*3+2]=Math.sin(angle)*r
-
-}
-
-}
-
-function setSpiral(){
-
-for(let i=0;i<PARTICLES;i++){
-
-let t=i*0.15
-
-targetPositions[i*3]=Math.cos(t)*t
-targetPositions[i*3+1]=Math.sin(t)*t
-targetPositions[i*3+2]=(Math.random()-0.5)*40
+targetPositions[i*3+2]=Math.sin(a)*r
 
 }
 
@@ -182,9 +204,25 @@ let t=Math.random()*Math.PI*2
 let x=16*Math.pow(Math.sin(t),3)
 let y=13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t)
 
-targetPositions[i*3]=x*5
-targetPositions[i*3+1]=y*5
+targetPositions[i*3]=x*6
+targetPositions[i*3+1]=y*6
 targetPositions[i*3+2]=(Math.random()-0.5)*30
+
+}
+
+}
+
+function setTornado(){
+
+for(let i=0;i<PARTICLES;i++){
+
+let h=Math.random()*200
+let r=20+h*0.3
+let a=h*0.1
+
+targetPositions[i*3]=Math.cos(a)*r
+targetPositions[i*3+1]=h-100
+targetPositions[i*3+2]=Math.sin(a)*r
 
 }
 
@@ -197,7 +235,7 @@ for(let i=0;i<PARTICLES;i++){
 let x=(Math.random()-0.5)*200
 let z=(Math.random()-0.5)*200
 
-let y=Math.sin(x*0.1)*20
+let y=Math.sin(x*0.1)*30
 
 targetPositions[i*3]=x
 targetPositions[i*3+1]=y
@@ -206,92 +244,6 @@ targetPositions[i*3+2]=z
 }
 
 }
-
-function setExplosion(){
-
-for(let i=0;i<PARTICLES;i++){
-
-targetPositions[i*3]=(Math.random()-0.5)*500
-targetPositions[i*3+1]=(Math.random()-0.5)*500
-targetPositions[i*3+2]=(Math.random()-0.5)*500
-
-}
-
-}
-
-function setTornado(){
-
-for(let i=0;i<PARTICLES;i++){
-
-let h=Math.random()*200
-let r=20+h*0.2
-let a=h*0.1
-
-targetPositions[i*3]=Math.cos(a)*r
-targetPositions[i*3+1]=h-100
-targetPositions[i*3+2]=Math.sin(a)*r
-
-}
-
-}
-
-function setCube(){
-
-for(let i=0;i<PARTICLES;i++){
-
-targetPositions[i*3]=(Math.random()-0.5)*120
-targetPositions[i*3+1]=(Math.random()-0.5)*120
-targetPositions[i*3+2]=(Math.random()-0.5)*120
-
-}
-
-}
-
-function setDNA(){
-
-for(let i=0;i<PARTICLES;i++){
-
-let t=i*0.05
-
-targetPositions[i*3]=Math.cos(t)*30
-targetPositions[i*3+1]=t*2-100
-targetPositions[i*3+2]=Math.sin(t)*30
-
-}
-
-}
-
-function setMandala(){
-
-for(let i=0;i<PARTICLES;i++){
-
-let angle=(i/PARTICLES)*Math.PI*40
-let r=80*Math.sin(angle*0.2)
-
-targetPositions[i*3]=Math.cos(angle)*r
-targetPositions[i*3+1]=Math.sin(angle)*r
-targetPositions[i*3+2]=Math.sin(angle*2)*20
-
-}
-
-}
-
-function setPortal(){
-
-for(let i=0;i<PARTICLES;i++){
-
-let angle=Math.random()*Math.PI*2
-let r=80
-
-targetPositions[i*3]=Math.cos(angle)*r
-targetPositions[i*3+1]=Math.sin(angle)*r
-targetPositions[i*3+2]=(Math.random()-0.5)*50
-
-}
-
-}
-
-let figura=-1
 
 function controlarFigura(dedos){
 
@@ -303,17 +255,35 @@ const msg=document.getElementById("mensaje")
 
 switch(dedos){
 
-case 0:setExplosion();msg.innerText="Explosión";break
-case 1:setSpiral();msg.innerText="Espiral";break
-case 2:setSphere();msg.innerText="Esfera";break
-case 3:setWave();msg.innerText="Onda";break
-case 4:setGalaxy();msg.innerText="Galaxia";break
-case 5:setHeart();msg.innerText="Corazón";break
-case 6:setDNA();msg.innerText="ADN";break
-case 7:setTornado();msg.innerText="Tornado";break
-case 8:setCube();msg.innerText="Cubo";break
-case 9:setPortal();msg.innerText="Portal";break
-default:setMandala();msg.innerText="Mandala"
+case 0:
+msg.innerText="💥 Energía liberada"
+explosion()
+break
+
+case 1:
+msg.innerText="Si lo puedes imaginar..."
+setSphere()
+break
+
+case 2:
+msg.innerText="Lo puedes crear."
+setGalaxy()
+break
+
+case 3:
+msg.innerText="Hazlo realidad."
+setWave()
+break
+
+case 4:
+msg.innerText="El universo responde."
+setTornado()
+break
+
+case 5:
+msg.innerText="Todo es energía."
+setHeart()
+break
 
 }
 
@@ -337,27 +307,43 @@ return dedos
 function initHands(){
 
 const video=document.getElementById("video")
+const debugCanvas=document.getElementById("debugCam")
+const ctx=debugCanvas.getContext("2d")
+
+debugCanvas.width=240
+debugCanvas.height=180
 
 const hands=new Hands({
 locateFile:(file)=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
 })
 
 hands.setOptions({
-maxNumHands:1,
+maxNumHands:2,
 modelComplexity:1,
-minDetectionConfidence:0.8,
-minTrackingConfidence:0.8
+minDetectionConfidence:0.7,
+minTrackingConfidence:0.7
 })
 
 hands.onResults(res=>{
 
-if(res.multiHandLandmarks && res.multiHandLandmarks.length){
+ctx.clearRect(0,0,240,180)
+ctx.drawImage(res.image,0,0,240,180)
 
-let l=res.multiHandLandmarks[0]
+if(res.multiHandLandmarks){
+
+res.multiHandLandmarks.forEach(l=>{
+
+drawConnectors(ctx,l,HAND_CONNECTIONS)
+drawLandmarks(ctx,l)
 
 let dedos=contarDedos(l)
 
 controlarFigura(dedos)
+
+handX=(l[9].x-0.5)
+handY=(l[9].y-0.5)
+
+})
 
 }
 
